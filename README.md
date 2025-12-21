@@ -36,7 +36,7 @@ Revibe is a Rust port of [Mistral Vibe](https://github.com/mistralai/mistral-vib
 
 ```bash
 # Clone the repository
-git clone https://github.com/mistralai/revibe
+git clone https://github.com/nicksenger/revibe
 cd revibe
 
 # Build and install
