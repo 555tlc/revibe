@@ -120,7 +120,10 @@ impl InputState {
 
     /// Set the current input content (for testing purposes).
     pub fn set_content(&mut self, content: String) {
+        // Update multiline flag based on content
+        self.multiline = content.contains('\n');
         self.content = content;
+        self.cursor = self.content.len();
     }
 
     /// Get the cursor position.
@@ -219,6 +222,7 @@ impl InputState {
         self.cursor = 0;
         self.reset_history_navigation();
         self.input_mode = InputMode::Normal;
+        self.multiline = false;
     }
 
     /// Clear from cursor to beginning of line.
@@ -226,6 +230,7 @@ impl InputState {
         if self.cursor > 0 {
             self.content.drain(0..self.cursor);
             self.cursor = 0;
+            self.on_text_changed();
         }
     }
 
@@ -263,12 +268,14 @@ impl InputState {
 
         self.content.replace_range(byte_word_start..byte_cursor, "");
         self.cursor = word_start;
+        self.on_text_changed();
     }
 
     /// Clear from cursor to end of line.
     pub fn clear_to_end(&mut self) {
         if self.cursor < self.content.len() {
             self.content.truncate(self.cursor);
+            self.on_text_changed();
         }
     }
 
@@ -396,6 +403,9 @@ impl InputState {
         self.input_mode = mode;
         self.content = display_text.to_string();
 
+        // Set multiline flag if content contains newlines
+        self.multiline = display_text.contains('\n');
+
         // Set cursor position
         let first_line = display_text.split('\n').next().unwrap_or("");
         let col = cursor_col.unwrap_or(first_line.chars().count());
@@ -416,6 +426,7 @@ impl InputState {
         self.cursor = 0;
         self.reset_history_navigation();
         self.input_mode = InputMode::Normal;
+        self.multiline = false;
         content
     }
 
@@ -434,6 +445,7 @@ impl InputState {
 
     /// Reset history state when text changes.
     fn on_text_changed(&mut self) {
+        self.multiline = self.content.contains('\n');
         if !self.navigating_history {
             self.reset_prefix();
             self.original_text.clear();
@@ -517,8 +529,7 @@ impl InputState {
                     || (key.modifiers.contains(KeyModifiers::CONTROL)
                         && key.code == KeyCode::Char('j'))
                 {
-                    self.insert('\n');
-                    self.on_text_changed();
+                    self.insert_newline();
                     self.update_completion();
                     false
                 } else {
@@ -527,8 +538,7 @@ impl InputState {
                 }
             }
             KeyCode::Char('j') if key.modifiers.contains(KeyModifiers::CONTROL) => {
-                self.insert('\n');
-                self.on_text_changed();
+                self.insert_newline();
                 self.update_completion();
                 false
             }
@@ -776,5 +786,60 @@ impl InputState {
     /// Check if multiline mode is active.
     pub fn is_multiline(&self) -> bool {
         self.multiline
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_multiline_flag_on_newline_insertion() {
+        let mut input = InputState::new();
+        
+        // Initially, multiline should be false
+        assert!(!input.is_multiline());
+        
+        // Insert a newline using insert_newline method
+        input.insert_newline();
+        assert!(input.is_multiline());
+        assert_eq!(input.content(), "\n");
+        
+        // Test with Shift+Enter simulation (via insert_newline)
+        input.set_content("line1".to_string());
+        input.move_cursor_to_end(); // Move cursor to end before inserting newline
+        input.insert_newline();
+        assert!(input.is_multiline());
+        assert_eq!(input.content(), "line1\n");
+    }
+
+    #[test]
+    fn test_multiline_flag_on_history_load() {
+        let mut input = InputState::new();
+        
+        // Load history entry without newlines
+        input.load_history_entry("single line", None);
+        assert!(!input.is_multiline());
+        assert_eq!(input.content(), "single line");
+        
+        // Load history entry with newlines
+        input.load_history_entry("line1\nline2", None);
+        assert!(input.is_multiline());
+        assert_eq!(input.content(), "line1\nline2");
+    }
+
+    #[test]
+    fn test_multiline_flag_on_set_content() {
+        let mut input = InputState::new();
+        
+        // Set content without newlines
+        input.set_content("single line".to_string());
+        assert!(!input.is_multiline());
+        assert_eq!(input.content(), "single line");
+        
+        // Set content with newlines
+        input.set_content("line1\nline2".to_string());
+        assert!(input.is_multiline());
+        assert_eq!(input.content(), "line1\nline2");
     }
 }

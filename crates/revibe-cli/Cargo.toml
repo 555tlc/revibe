@@ -45,6 +45,8 @@ atty = "0.2"
 whoami = "1.5"
 pulldown-cmark = "0.12"
 reqwest = { version = "0.11", features = ["json"] }
+unicode-width = "0.1"
+textwrap = "0.16"
 
 [dev-dependencies]
 assert_cmd = "2.0"

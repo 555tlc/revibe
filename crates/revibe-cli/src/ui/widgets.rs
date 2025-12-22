@@ -799,6 +799,7 @@ pub fn render_input_box<'a>(
 
     // For multiline mode, we need to handle each line separately
     if multiline && !content.is_empty() {
+        // Create lines with proper indentation for multiline display
         let lines: Vec<Line> = content
             .lines()
             .enumerate()
@@ -819,6 +820,7 @@ pub fn render_input_box<'a>(
 
         Paragraph::new(lines)
             .block(block)
+            .wrap(Wrap { trim: false })
             .style(Style::default().fg(colors::FOREGROUND))
     } else {
         // Single line mode

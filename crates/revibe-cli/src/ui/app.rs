@@ -17,6 +17,8 @@ use ratatui::{
     prelude::*,
     widgets::{Block, Borders, Paragraph, Scrollbar, ScrollbarOrientation, ScrollbarState},
 };
+use textwrap::Options;
+use unicode_width::UnicodeWidthStr;
 use revibe_core::VibeConfig;
 use revibe_core::events::ToolResultEvent;
 use revibe_core::modes::AgentMode;
@@ -674,7 +676,7 @@ impl App {
         // - #bottom-bar: height auto, padding 0 0 1 0 (1 line bottom padding)
         
         // Calculate dynamic input height based on content
-        let input_height = self.calculate_input_height();
+        let input_height = self.calculate_input_height(area.width);
         let bottom_bar_height: u16 = 2; // Bottom bar (1 line content + 1 line bottom padding)
         let loading_area_height: u16 = 2; // Loading area (1 line top padding + 1 line content)
         
@@ -957,19 +959,26 @@ impl App {
         }
     }
 
-    /// Calculate the required height for the input area based on content.
-    fn calculate_input_height(&self) -> u16 {
-        let content = self.input.content();
-        let line_count = self.input.line_count();
-        
-        // Base height: 1 line for top border + 1 line for content + 1 line for bottom border
-        // For multiline content, add additional lines for each line of content
-        if content.is_empty() {
-            3 // Default height when empty (top border + placeholder + bottom border)
-        } else {
-            // 1 for top border + line_count for content + 1 for bottom border
-            line_count as u16 + 2
+    /// Calculate the required height for the input area based on content and available width.
+    fn calculate_input_height(&self, available_width: u16) -> u16 {
+        if self.input.content().is_empty() {
+            // Default height when empty (top border + placeholder + bottom border)
+            return 3;
         }
+
+        let content_lines = self.displayed_line_count(available_width);
+        content_lines as u16 + 2 // +2 for the top and bottom borders
+    }
+
+    /// Number of rendered lines for the current content given the available width.
+    fn displayed_line_count(&self, available_width: u16) -> usize {
+        self.wrap_content(available_width, None).0
+    }
+
+    /// Calculate the inner width available for input text (after padding).
+    fn input_inner_width(&self, available_width: u16) -> usize {
+        // Block uses left/right padding of 1 with no side borders.
+        usize::from(available_width.saturating_sub(2)).max(1)
     }
 
     /// Test function for input height calculation
@@ -1005,54 +1014,133 @@ impl App {
     /// Calculate cursor position for multiline input.
     fn calculate_cursor_position(&self, area: Rect) -> (u16, u16) {
         let content = self.input.content();
-        let cursor_pos = self.input.cursor();
-        let multiline = self.input.is_multiline();
+        let cursor_byte = self.input.cursor().min(content.len());
 
-        // Calculate the cursor column (char count, not byte offset)
-        let cursor_col = content[..cursor_pos].chars().count();
-
-        if !multiline || content.is_empty() {
-            // Simple single-line cursor positioning
-            // area.x + 1 (block left padding) + 2 ("> " prompt) + cursor column
-            let cursor_x = area.x + 1 + 2 + cursor_col as u16;
-            let cursor_y = area.y + 1; // +1 for top border
-            return (cursor_x.min(area.right() - 1), cursor_y);
+        // Empty content: position after prompt (and indicator if present)
+        if content.is_empty() {
+            let multiline = self.input.is_multiline();
+            let prompt_width = UnicodeWidthStr::width("> ");
+            let indicator_width = if multiline {
+                UnicodeWidthStr::width("📝 ")
+            } else {
+                0
+            };
+            let inner_width = self.input_inner_width(area.width);
+            let offset = prompt_width + if multiline { indicator_width } else { 0 };
+            let cursor_x = area
+                .x
+                .saturating_add(1 + offset.min(inner_width) as u16)
+                .min(area.right().saturating_sub(1));
+            let cursor_y = area.y.saturating_add(1).min(area.bottom().saturating_sub(1));
+            return (cursor_x, cursor_y);
         }
 
-        // Multiline cursor positioning
-        let lines: Vec<&str> = content.split('\n').collect();
+        let (_, cursor_line_col) = self.wrap_content(area.width, Some(cursor_byte));
 
-        // Find which line the cursor is on by counting characters
-        let mut chars_counted = 0;
-        let mut current_line = 0;
-        let mut cursor_in_line = 0;
-
-        for (i, line) in lines.iter().enumerate() {
-            let line_char_count = line.chars().count();
-            let line_end = chars_counted + line_char_count;
-
-            if cursor_col <= line_end {
-                current_line = i;
-                cursor_in_line = cursor_col - chars_counted;
-                break;
-            }
-            chars_counted = line_end + 1; // +1 for newline
-        }
-
-        // Calculate X position (account for block padding + prompt on first line, indentation on others)
-        let cursor_x = if current_line == 0 {
-            // First line: account for block padding + multiline indicator + prompt
-            // padding (1) + "📝 > " (5 chars: emoji takes 2 cells + space + > + space)
-            area.x + 1 + 5 + cursor_in_line as u16
+        if let Some((line_idx, col)) = cursor_line_col {
+            let cursor_x = area
+                .x
+                .saturating_add(1 + col as u16)
+                .min(area.right().saturating_sub(1));
+            let cursor_y = area
+                .y
+                .saturating_add(1 + line_idx as u16)
+                .min(area.bottom().saturating_sub(1));
+            (cursor_x, cursor_y)
         } else {
-            // Other lines: account for block padding + indentation
-            area.x + 1 + 2 + cursor_in_line as u16 // padding (1) + "  " (2)
+            // Fallback: end of content
+            let cursor_x = area.x.saturating_add(1).min(area.right().saturating_sub(1));
+            let cursor_y = area
+                .y
+                .saturating_add(1 + self.displayed_line_count(area.width).saturating_sub(1) as u16)
+                .min(area.bottom().saturating_sub(1));
+            (cursor_x, cursor_y)
+        }
+    }
+
+    /// Wrap the current content using word-aware wrapping to mirror ratatui's Paragraph.
+    /// Returns (total rendered lines, optional (line_idx, column_width) for the cursor).
+    fn wrap_content(
+        &self,
+        available_width: u16,
+        cursor_byte: Option<usize>,
+    ) -> (usize, Option<(usize, usize)>) {
+        const CURSOR_SENTINEL: char = '\u{200b}'; // zero-width so it won't affect wrap width
+
+        let width = self.input_inner_width(available_width);
+        let content = self.input.content();
+        let multiline = self.input.is_multiline() || content.contains('\n');
+        let prompt_width = UnicodeWidthStr::width("> ");
+        let indicator_width = if multiline {
+            UnicodeWidthStr::width("📝 ")
+        } else {
+            0
+        };
+        let continuation_indent = if multiline {
+            UnicodeWidthStr::width("  ")
+        } else {
+            0
         };
 
-        // Calculate Y position
-        let cursor_y = area.y + 1 + current_line as u16; // +1 for top border
+        let mut total_lines = 0usize;
+        let mut cursor_location: Option<(usize, usize)> = None;
+        let mut global_byte_offset = 0usize;
 
-        (cursor_x.min(area.right() - 1), cursor_y)
+        for (line_idx, line) in content.split('\n').enumerate() {
+            let line_start = global_byte_offset;
+            let line_end = line_start + line.len();
+            let contains_cursor =
+                cursor_byte.map_or(false, |c| c >= line_start && c <= line_end);
+
+            let mut line_content = line.to_string();
+            if contains_cursor {
+                if let Some(cursor) = cursor_byte {
+                    let local_offset = cursor.saturating_sub(line_start);
+                    let insert_at = line_content
+                        .char_indices()
+                        .nth(local_offset)
+                        .map(|(idx, _)| idx)
+                        .unwrap_or_else(|| line_content.len());
+                    line_content.insert(insert_at, CURSOR_SENTINEL);
+                }
+            }
+
+            let (first_prefix, subsequent_prefix) = match (multiline, line_idx) {
+                (true, 0) => (indicator_width + prompt_width, continuation_indent),
+                (true, _) => (continuation_indent, continuation_indent),
+                (false, 0) => (prompt_width, 0),
+                (false, _) => (0, 0),
+            };
+
+            let initial_indent = " ".repeat(first_prefix.min(width));
+            let subsequent_indent = " ".repeat(subsequent_prefix.min(width));
+
+            let options = Options::new(width)
+                .initial_indent(initial_indent.as_str())
+                .subsequent_indent(subsequent_indent.as_str())
+                .break_words(true);
+
+            let wrapped = textwrap::wrap(line_content.as_str(), &options);
+            let wrapped_iter = if wrapped.is_empty() {
+                vec![initial_indent.clone().into()]
+            } else {
+                wrapped
+            };
+
+            for wrapped_line in wrapped_iter {
+                if contains_cursor && cursor_location.is_none() {
+                    if let Some(pos) = wrapped_line.find(CURSOR_SENTINEL) {
+                        let col = UnicodeWidthStr::width(&wrapped_line[..pos]);
+                        cursor_location = Some((total_lines, col));
+                    }
+                }
+                total_lines = total_lines.saturating_add(1);
+            }
+
+            global_byte_offset = line_end.saturating_add(1); // account for newline
+        }
+
+        (total_lines.max(1), cursor_location)
     }
 
     /// Render the input area.
