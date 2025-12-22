@@ -118,6 +118,11 @@ impl InputState {
         &self.content
     }
 
+    /// Set the current input content (for testing purposes).
+    pub fn set_content(&mut self, content: String) {
+        self.content = content;
+    }
+
     /// Get the cursor position.
     #[must_use]
     pub fn cursor(&self) -> usize {

@@ -819,7 +819,6 @@ pub fn render_input_box<'a>(
 
         Paragraph::new(lines)
             .block(block)
-            .wrap(Wrap { trim: false })
             .style(Style::default().fg(colors::FOREGROUND))
     } else {
         // Single line mode

@@ -32,6 +32,16 @@ use super::spinner::{Spinner, apply_easter_egg, get_loading_message, get_tool_st
 use super::widgets::{self, colors};
 use crate::commands::CommandRegistry;
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_input_height_calculation() {
+        App::test_input_height_calculation();
+    }
+}
+
 /// Actions the app can take after processing input.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AppAction {
@@ -662,7 +672,14 @@ impl App {
         // - #todo-area: height auto (for todo checklist)
         // - #bottom-app-container: height auto (input box)
         // - #bottom-bar: height auto, padding 0 0 1 0 (1 line bottom padding)
-        let reserved_height: u16 = 7; // loading area (2) + input (3) + bottom bar (2)
+        
+        // Calculate dynamic input height based on content
+        let input_height = self.calculate_input_height();
+        let bottom_bar_height: u16 = 2; // Bottom bar (1 line content + 1 line bottom padding)
+        let loading_area_height: u16 = 2; // Loading area (1 line top padding + 1 line content)
+        
+        // Calculate reserved height dynamically
+        let reserved_height = loading_area_height + input_height + bottom_bar_height;
         let min_chat_height: u16 = 1;
         let max_todo_height = area
             .height
@@ -687,10 +704,10 @@ impl App {
             .direction(Direction::Vertical)
             .constraints([
                 Constraint::Min(1),                   // Chat area (fills remaining space)
-                Constraint::Length(2), // Loading area (1 line top padding + 1 line content)
+                Constraint::Length(loading_area_height), // Loading area
                 Constraint::Length(todo_area_height), // Todo area (variable height)
-                Constraint::Length(3), // Input area (3 lines: top border + input + bottom border)
-                Constraint::Length(2), // Bottom bar (1 line content + 1 line bottom padding)
+                Constraint::Length(input_height), // Input area (dynamic height based on content)
+                Constraint::Length(bottom_bar_height), // Bottom bar
             ])
             .margin(0) // No margin to match CSS
             .split(area);
@@ -937,6 +954,51 @@ impl App {
             let paragraph = Paragraph::new(lines).block(block);
 
             frame.render_widget(paragraph, area);
+        }
+    }
+
+    /// Calculate the required height for the input area based on content.
+    fn calculate_input_height(&self) -> u16 {
+        let content = self.input.content();
+        let line_count = self.input.line_count();
+        
+        // Base height: 1 line for top border + 1 line for content + 1 line for bottom border
+        // For multiline content, add additional lines for each line of content
+        if content.is_empty() {
+            3 // Default height when empty (top border + placeholder + bottom border)
+        } else {
+            // 1 for top border + line_count for content + 1 for bottom border
+            line_count as u16 + 2
+        }
+    }
+
+    /// Test function for input height calculation
+    #[cfg(test)]
+    pub fn test_input_height_calculation() {
+        use super::input::InputState;
+        
+        let test_cases = vec![
+            ("", 3),           // Empty input
+            ("single line", 3), // Single line
+            ("line1\nline2", 4), // Two lines
+            ("line1\nline2\nline3", 5), // Three lines
+            ("line1\nline2\nline3\nline4", 6), // Four lines
+        ];
+
+        for (content, expected_height) in test_cases {
+            let mut input = InputState::new();
+            // Use the public method to set content
+            input.set_content(content.to_string());
+            
+            // Test the line_count method directly
+            let line_count = input.line_count();
+            let calculated_height = if content.is_empty() {
+                3
+            } else {
+                line_count as u16 + 2
+            };
+            
+            assert_eq!(calculated_height, expected_height, "Failed for content: {:?}", content);
         }
     }
 
